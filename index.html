@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trumps scoreboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --baize: #1c5a41;
+  --baize-deep: #134230;
+  --sheet: #f3f6f1;
+  --sheet-alt: #e6ece4;
+  --ink: #14231b;
+  --muted: #5a6b61;
+  --line: #c3cec5;
+  --red: #b3261e;
+  --green: #1c6b48;
+  --gold: #c9a227; --blue: #1d4fd8;
+  --on-baize: #f3f6f1;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --baize: #0f2c20; --baize-deep: #0a1f17; --sheet: #17362a; --sheet-alt: #1e4334;
+    --ink: #e8efe9; --muted: #9db3a6; --line: #2f5a47; --red: #ff8a80; --green: #7fd6a8;
+    --gold: #e0bd4a; --blue: #8ab4ff; --on-baize: #e8efe9;
+  }
+}
+:root[data-theme="dark"] {
+  --baize: #0f2c20; --baize-deep: #0a1f17; --sheet: #17362a; --sheet-alt: #1e4334;
+  --ink: #e8efe9; --muted: #9db3a6; --line: #2f5a47; --red: #ff8a80; --green: #7fd6a8;
+  --gold: #e0bd4a; --blue: #8ab4ff; --on-baize: #e8efe9;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%;
+  background: var(--baize);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px; line-height: 1.4;
+}
+.wrap { max-width: 60rem; margin: 0 auto; padding: 1.25rem 1rem 2rem; }
+h1 {
+  font-family: "Zilla Slab", Georgia, serif; font-weight: 700;
+  font-size: 2rem; line-height: 1.1; margin: 0; color: var(--on-baize);
+}
+.suits { color: var(--gold); letter-spacing: .15em; font-size: 1rem; margin: .35rem 0 1.25rem; }
+[hidden] { display: none !important; }
+
+/* Setup */
+.panel { background: var(--sheet); border-radius: 14px; padding: 1.25rem; }
+.field { margin-bottom: 1.5rem; }
+.field > label, .field > .lab { display: block; font-weight: 600; margin-bottom: .5rem; }
+.stepper { display: inline-flex; align-items: center; gap: .75rem; }
+.stepper button {
+  width: 2.75rem; height: 2.75rem; border-radius: 50%; border: 2px solid var(--baize);
+  background: transparent; color: var(--ink); font-size: 1.4rem; line-height: 1; cursor: pointer;
+}
+.stepper output {
+  font-family: "Zilla Slab", Georgia, serif; font-weight: 700; font-size: 2rem;
+  min-width: 2.5ch; text-align: center; font-variant-numeric: tabular-nums;
+}
+.cards { display: flex; flex-wrap: wrap; gap: .6rem; }
+.cards input {
+  width: 3.4rem; height: 4.6rem; border-radius: 8px; border: 2px solid var(--line);
+  background: var(--sheet-alt); color: var(--ink); text-align: center; text-transform: uppercase;
+  font-family: "Zilla Slab", Georgia, serif; font-weight: 700; font-size: 2rem;
+}
+.cards input:nth-child(even) { color: var(--red); }
+.error { color: var(--red); font-weight: 600; min-height: 1.4em; margin: 0 0 .75rem; }
+.primary {
+  width: 100%; padding: .9rem 1rem; border: 0; border-radius: 10px; cursor: pointer;
+  background: var(--baize); color: #f3f6f1; font-size: 1.05rem; font-weight: 700;
+}
+:root[data-theme="dark"] .primary { background: var(--gold); color: #14231b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .primary { background: var(--gold); color: #14231b; } }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* Board */
+.bar { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
+.bar .suits { margin-bottom: 0; }
+.ghost {
+  background: transparent; color: var(--on-baize); border: 2px solid var(--on-baize);
+  border-radius: 999px; padding: .5rem .9rem; font-weight: 600; font-size: .9rem; cursor: pointer; white-space: nowrap;
+}
+.ghost.armed { background: var(--red); border-color: var(--red); color: #fff; }
+.scroll { overflow-x: auto; background: var(--sheet); border-radius: 14px; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: .4rem .3rem; text-align: center; border-bottom: 1px solid var(--line); }
+thead th { background: var(--sheet); font-weight: 600; font-size: .8rem; color: var(--muted); }
+thead tr:first-child th { border-bottom: 0; padding-bottom: 0; }
+th.letter { font-family: "Zilla Slab", Georgia, serif; font-size: 1.5rem; color: var(--ink); font-weight: 700; }
+th.letter, td.g { border-left: 1px solid var(--line); }
+.hands {
+  position: sticky; left: 0; z-index: 1; background: var(--sheet);
+  font-family: "Zilla Slab", Georgia, serif; font-weight: 700; font-size: 1.25rem;
+  min-width: 3.2rem; border-right: 2px solid var(--baize);
+}
+thead .hands { font-family: inherit; font-size: .8rem; }
+td input {
+  width: 2.6rem; height: 2.6rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--sheet-alt); color: var(--ink); text-align: center; font-size: 1.1rem; font-weight: 600;
+}
+td.g input { border-style: dashed; }
+tr.now td.hands { background: var(--gold); color: #14231b; }
+td.scores, th.scores { border-left: 2px solid var(--baize); text-align: left; padding-left: .6rem; min-width: 9rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .3rem .7rem; }
+.chip { white-space: nowrap; font-weight: 700; }
+.chip b { font-family: "Zilla Slab", Georgia, serif; margin-right: .25rem; color: var(--muted); }
+.pos { color: var(--green); } .neg { color: var(--red); } .exact { color: var(--blue); }
+.trump {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 3.2rem; height: 3.2rem; padding: 0; border: 2px solid transparent; border-radius: 8px;
+  background: transparent; color: inherit; font: inherit; line-height: 1;
+}
+.trump .n { position: relative; z-index: 1; }
+.trump .s { position: absolute; inset: 0; color: var(--ink); pointer-events: none; }
+.trump .s svg { display: block; width: 100%; height: 100%; }
+.trump .s.red { color: var(--red); }
+.trump.has .n { color: var(--sheet); font-size: 1rem; }
+.trump.has.spade .n { top: .14rem; }
+.trump.has.heart .n { top: -.24rem; }
+tr.now .trump { cursor: pointer; }
+tr.now .trump:not(.has) { border-color: #14231b; background: rgba(255,255,255,.35); }
+tr.now .trump .s { color: #14231b; }
+tr.now .trump .s.red { color: #b3261e; }
+tr.now .trump.has .n { color: #fff; }
+.warn { font-size: .78rem; color: var(--red); margin-top: .2rem; }
+tfoot td { border-bottom: 0; padding: .7rem .3rem; font-weight: 700; background: var(--sheet-alt); }
+tfoot .hands { background: var(--sheet-alt); font-family: inherit; font-size: .85rem; }
+tfoot .tot { font-family: "Zilla Slab", Georgia, serif; font-size: 1.5rem; border-left: 1px solid var(--line); }
+tfoot .lead { color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="setup">
+    <h1>Trumps scoreboard</h1>
+    <div class="suits" aria-hidden="true">♠ ♥ ♣ ♦</div>
+    <div class="panel">
+      <div class="field">
+        <span class="lab" id="lab-hands">Hands in the first round</span>
+        <div class="stepper" role="group" aria-labelledby="lab-hands">
+          <button type="button" data-step="hands" data-d="-1" aria-label="Fewer hands">−</button>
+          <output id="out-hands">7</output>
+          <button type="button" data-step="hands" data-d="1" aria-label="More hands">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lab" id="lab-players">Players</span>
+        <div class="stepper" role="group" aria-labelledby="lab-players">
+          <button type="button" data-step="players" data-d="-1" aria-label="Fewer players">−</button>
+          <output id="out-players">4</output>
+          <button type="button" data-step="players" data-d="1" aria-label="More players">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lab">A letter for each player</span>
+        <div class="cards" id="letters"></div>
+      </div>
+      <p class="error" id="err" role="alert"></p>
+      <button class="primary" id="start" type="button">Start game</button>
+    </div>
+  </section>
+
+  <section id="board" hidden>
+    <div class="bar">
+      <div>
+        <h1>Trumps scoreboard</h1>
+        <div class="suits" aria-hidden="true">♠ ♥ ♣ ♦</div>
+      </div>
+      <button class="ghost" id="reset" type="button">New game</button>
+    </div>
+    <div class="scroll"><table id="tbl"></table></div>
+  </section>
+
+</div>
+<script>
+(function () {
+  var KEY = 'trumps-scoreboard-v1';
+  var cfg = { hands: 7, players: 4 };
+  var LIMITS = { hands: [1, 26], players: [2, 8] };
+  var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  var state = null;
+  var STEM = '<path d="M50 62C50 80 44 92 34 96L66 96C56 92 50 80 50 62Z"/>';
+  var SUITS = [
+    '<path d="M50 5C78 29 96 45 96 62C96 76 85 84 73 84C62 84 54 79 50 71C46 79 38 84 27 84C15 84 4 76 4 62C4 45 22 29 50 5Z"/>' + STEM,
+    '<path d="M50 92C20 66 4 49 4 31C4 16 16 6 29 6C39 6 46 11 50 20C54 11 61 6 71 6C84 6 96 16 96 31C96 49 80 66 50 92Z"/>',
+    '<path d="M50 3L90 50L50 97L10 50Z"/>',
+    '<circle cx="50" cy="27" r="23"/><circle cx="26" cy="58" r="23"/><circle cx="74" cy="58" r="23"/><circle cx="50" cy="50" r="16"/>' + STEM
+  ];
+  var SUIT_NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
+
+  var $ = function (id) { return document.getElementById(id); };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function load() { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } }
+  function clear() { try { localStorage.removeItem(KEY); } catch (e) {} }
+  function fmt(n) { return n < 0 ? '\u2212' + Math.abs(n) : String(n); }
+  function cls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : ''; }
+
+  /* ---------- Setup ---------- */
+  function drawLetters() {
+    var box = $('letters');
+    var current = Array.prototype.map.call(box.querySelectorAll('input'), function (i) { return i.value; });
+    current.forEach(function (v, i) { letters[i] = v; });
+    box.innerHTML = '';
+    for (var i = 0; i < cfg.players; i++) {
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 1; inp.value = letters[i] || '';
+      inp.autocapitalize = 'characters'; inp.autocomplete = 'off';
+      inp.setAttribute('aria-label', 'Letter for player ' + (i + 1));
+      inp.addEventListener('focus', function () { this.select(); });
+      inp.addEventListener('input', function () { this.value = this.value.toUpperCase(); $('err').textContent = ''; });
+      box.appendChild(inp);
+    }
+  }
+  document.querySelectorAll('[data-step]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.step, v = cfg[k] + Number(b.dataset.d);
+      cfg[k] = Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], v));
+      $('out-' + k).textContent = cfg[k];
+      if (k === 'players') drawLetters();
+    });
+  });
+  $('start').addEventListener('click', function () {
+    var vals = Array.prototype.map.call($('letters').querySelectorAll('input'), function (i) { return i.value.trim().toUpperCase(); });
+    if (vals.some(function (v) { return !v; })) { $('err').textContent = 'Give every player a letter.'; return; }
+    if (new Set(vals).size !== vals.length) { $('err').textContent = 'Two players have the same letter. Change one.'; return; }
+    var rounds = [];
+    for (var h = cfg.hands; h >= 1; h--) {
+      rounds.push({ hands: h, cells: vals.map(function () { return { g: '', w: '' }; }) });
+    }
+    state = { players: vals, rounds: rounds };
+    save(); showBoard();
+  });
+
+  /* ---------- Board ---------- */
+  function score(c) {
+    if (c.g === '' || c.w === '') return null;
+    var g = Number(c.g), w = Number(c.w);
+    return g === w ? w + 10 : w - Math.abs(g - w);
+  }
+
+  function buildTable() {
+    var P = state.players, h = '';
+    h += '<thead><tr><th class="hands" rowspan="2">Hands</th>';
+    P.forEach(function (p) { h += '<th class="letter" colspan="2">' + esc(p) + '</th>'; });
+    h += '<th class="scores" rowspan="2">Round scores</th></tr><tr>';
+    P.forEach(function () { h += '<th class="g">Guess</th><th>Won</th>'; });
+    h += '</tr></thead><tbody>';
+    state.rounds.forEach(function (r, ri) {
+      h += '<tr data-r="' + ri + '"><td class="hands"><button type="button" class="trump" data-trump="' + ri + '"><span class="s" aria-hidden="true"></span><span class="n">' + r.hands + '</span></button></td>';
+      r.cells.forEach(function (c, pi) {
+        ['g', 'w'].forEach(function (f) {
+          h += '<td class="' + f + '"><input type="text" inputmode="numeric" maxlength="2" data-r="' + ri +
+            '" data-p="' + pi + '" data-f="' + f + '" value="' + c[f] + '" aria-label="' + esc(P[pi]) + ' ' +
+            (f === 'g' ? 'guess' : 'hands won') + ', round of ' + r.hands + '"></td>';
+        });
+      });
+      h += '<td class="scores"></td></tr>';
+    });
+    h += '</tbody><tfoot><tr><td class="hands">Total</td>';
+    P.forEach(function (_, pi) { h += '<td class="tot" colspan="2" data-tot="' + pi + '">0</td>'; });
+    h += '<td class="scores"></td></tr></tfoot>';
+    $('tbl').innerHTML = h;
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function refresh() {
+    var P = state.players, totals = P.map(function () { return 0; });
+    var rows = $('tbl').tBodies[0].rows, nowSet = false;
+    state.rounds.forEach(function (r, ri) {
+      var chips = '', done = true, wonSum = 0, wonAll = true, gSum = 0, gAll = true;
+      r.cells.forEach(function (c, pi) {
+        var s = score(c);
+        if (c.w === '') wonAll = false; else wonSum += Number(c.w);
+        if (c.g === '') gAll = false; else gSum += Number(c.g);
+        if (s === null) { done = false; chips += '<span class="chip"><b>' + esc(P[pi]) + '</b>\u2013</span>'; }
+        else { totals[pi] += s; chips += '<span class="chip ' + (c.g === c.w ? 'exact' : cls(s)) + '"><b>' + esc(P[pi]) + '</b>' + fmt(s) + '</span>'; }
+      });
+      var html = '<div class="chips">' + chips + '</div>';
+      if (gAll && gSum === r.hands) {
+        html += '<div class="warn">Guesses add up to ' + r.hands + '. The last guesser must pick a different number.</div>';
+      }
+      if (wonAll && wonSum !== r.hands) {
+        html += '<div class="warn">Hands won add up to ' + wonSum + ', not ' + r.hands + '.</div>';
+      }
+      rows[ri].cells[rows[ri].cells.length - 1].innerHTML = html;
+      var isNow = !done && !nowSet;
+      rows[ri].classList.toggle('now', isNow);
+      if (!done) nowSet = true;
+      var btn = rows[ri].querySelector('.trump'), sEl = btn.querySelector('.s'), su = r.suit || 0;
+      btn.disabled = !isNow;
+      sEl.innerHTML = su ? '<svg viewBox="0 0 100 100" fill="currentColor">' + SUITS[su - 1] + '</svg>' : '';
+      sEl.className = 's' + (su === 2 || su === 3 ? ' red' : '');
+      btn.className = 'trump' + (su ? ' has ' + ['spade', 'heart', 'diamond', 'club'][su - 1] : '');
+      btn.setAttribute('aria-label', 'Round of ' + r.hands + ', suit: ' + (su ? SUIT_NAMES[su - 1] : 'none') + (isNow ? '. Tap to change' : ''));
+    });
+    var best = Math.max.apply(null, totals);
+    var started = state.rounds.some(function (r) { return r.cells.some(function (c) { return score(c) !== null; }); });
+    totals.forEach(function (t, pi) {
+      var el = $('tbl').querySelector('[data-tot="' + pi + '"]');
+      el.textContent = fmt(t);
+      el.classList.toggle('lead', started && t === best);
+    });
+  }
+
+  $('tbl').addEventListener('input', function (e) {
+    var t = e.target;
+    if (!t.dataset || t.dataset.f === undefined) return;
+    var r = state.rounds[Number(t.dataset.r)];
+    var v = t.value.replace(/\D/g, '');
+    if (v !== '') v = String(Math.min(Number(v), r.hands));
+    t.value = v;
+    r.cells[Number(t.dataset.p)][t.dataset.f] = v;
+    save(); refresh();
+  });
+  $('tbl').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.trump') : null;
+    if (!b || b.disabled) return;
+    var r = state.rounds[Number(b.dataset.trump)];
+    r.suit = ((r.suit || 0) + 1) % 5;
+    save(); refresh();
+  });
+  $('tbl').addEventListener('focusin', function (e) { if (e.target.select) e.target.select(); });
+
+  var armTimer = null;
+  $('reset').addEventListener('click', function () {
+    var b = this;
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed'); b.textContent = 'Tap again to clear scores';
+      armTimer = setTimeout(disarm, 3500);
+      return;
+    }
+    clearTimeout(armTimer); disarm();
+    state = null; clear();
+    $('board').hidden = true; $('setup').hidden = false;
+  });
+  function disarm() { var b = $('reset'); b.classList.remove('armed'); b.textContent = 'New game'; }
+
+  function showBoard() {
+    $('setup').hidden = true; $('board').hidden = false;
+    buildTable(); refresh();
+  }
+
+  /* ---------- Init ---------- */
+  drawLetters();
+  var saved = load();
+  if (saved && Array.isArray(saved.players) && Array.isArray(saved.rounds) && saved.rounds.length) {
+    state = saved; showBoard();
+  }
+})();
+</script>
+</body>
+</html>
